@@ -12,11 +12,34 @@ Notes and Java code examples from studying object-oriented design principles and
 
 | Principle | Description | Violation sign |
 |---|---|---|
-| **S** — Single Responsibility | One class, one reason to change | "God class" doing everything |
-| **O** — Open/Closed | Open for extension, closed for modification | `if instanceof` chains |
-| **L** — Liskov Substitution | Subtypes must be substitutable for their base | Subclass throws on inherited method |
-| **I** — Interface Segregation | No forced implementation of unused methods | Fat interface with many irrelevant methods |
-| **D** — Dependency Inversion | Depend on abstractions, not concretions | `new ConcreteService()` inside business logic |
+| **S** - Single Responsibility | One class, one reason to change | "God class" doing everything |
+| **O** - Open/Closed | Open for extension, closed for modification | `if instanceof` chains |
+| **L** - Liskov Substitution | Subtypes must be substitutable for their base | Subclass throws on inherited method |
+| **I** - Interface Segregation | No forced implementation of unused methods | Fat interface with many irrelevant methods |
+| **D** - Dependency Inversion | Depend on abstractions, not concretions | `new ConcreteService()` inside business logic |
+
+**Dependency Inversion + Open/Closed in one diagram:** `Checkout` depends on the `PaymentProcessor` abstraction, so adding `CryptoPayment` needs zero changes to `Checkout`.
+
+```mermaid
+classDiagram
+    class PaymentProcessor {
+        <<interface>>
+        +pay(amount)
+    }
+    class CardPayment {
+        +pay(amount)
+    }
+    class CashPayment {
+        +pay(amount)
+    }
+    class Checkout {
+        -processor: PaymentProcessor
+        +complete()
+    }
+    PaymentProcessor <|.. CardPayment
+    PaymentProcessor <|.. CashPayment
+    Checkout o-- PaymentProcessor : depends on abstraction
+```
 
 ---
 
@@ -29,6 +52,34 @@ Notes and Java code examples from studying object-oriented design principles and
 | **Abstract Factory** | Families of related objects | UI toolkit that must be consistent (dark/light theme) |
 | **Builder** | Construct complex objects step by step | Object with many optional parameters |
 | **Prototype** | Clone existing objects | Expensive construction, need independent copies |
+
+**Factory Method:** a creator defers which concrete product to instantiate to its subclasses.
+
+```mermaid
+classDiagram
+    class Dialog {
+        <<abstract>>
+        +createButton() Button
+        +render()
+    }
+    class WindowsDialog {
+        +createButton() Button
+    }
+    class WebDialog {
+        +createButton() Button
+    }
+    class Button {
+        <<interface>>
+        +onClick()
+    }
+    class WindowsButton
+    class HtmlButton
+    Dialog <|-- WindowsDialog
+    Dialog <|-- WebDialog
+    Button <|.. WindowsButton
+    Button <|.. HtmlButton
+    Dialog ..> Button : creates
+```
 
 ---
 
@@ -43,6 +94,29 @@ Notes and Java code examples from studying object-oriented design principles and
 | **Proxy** | Placeholder controlling access | Lazy loading, access control, caching |
 | **Bridge** | Decouple abstraction from implementation | Cross-platform rendering (Shape + Renderer) |
 | **Flyweight** | Share state across many fine-grained objects | Characters in a text editor, game sprites |
+
+**Decorator:** wrap a component to add behavior at runtime without subclassing. Both the decorator and the concrete component share the component interface, so they nest.
+
+```mermaid
+classDiagram
+    class Coffee {
+        <<interface>>
+        +cost() double
+        +description() str
+    }
+    class SimpleCoffee
+    class CoffeeDecorator {
+        <<abstract>>
+        -wrapped: Coffee
+    }
+    class MilkDecorator
+    class SugarDecorator
+    Coffee <|.. SimpleCoffee
+    Coffee <|.. CoffeeDecorator
+    CoffeeDecorator <|-- MilkDecorator
+    CoffeeDecorator <|-- SugarDecorator
+    CoffeeDecorator o-- Coffee : wraps
+```
 
 ---
 
@@ -62,6 +136,51 @@ Notes and Java code examples from studying object-oriented design principles and
 | **Visitor** | Add operations without modifying classes | AST transformations, export formats |
 | **Interpreter** | Grammar for a language | SQL parsing, config DSLs |
 
+**Strategy** (swap an algorithm) and **Observer** (one-to-many notification) - the two most common in interviews:
+
+```mermaid
+classDiagram
+    class SortContext {
+        -strategy: SortStrategy
+        +sort(data)
+    }
+    class SortStrategy {
+        <<interface>>
+        +sort(data)
+    }
+    class QuickSort
+    class MergeSort
+    SortContext o-- SortStrategy
+    SortStrategy <|.. QuickSort
+    SortStrategy <|.. MergeSort
+
+    class Subject {
+        -observers: List~Observer~
+        +attach(o)
+        +notify()
+    }
+    class Observer {
+        <<interface>>
+        +update(event)
+    }
+    class EmailObserver
+    class SmsObserver
+    Subject o-- Observer
+    Observer <|.. EmailObserver
+    Observer <|.. SmsObserver
+```
+
+**State:** an object delegates behavior to its current state object, so transitions are explicit (used in the ATM / vending machine LLD problems).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Active: start
+    Active --> Paused: pause
+    Paused --> Active: resume
+    Active --> Idle: stop
+```
+
 ---
 
 ## Quick reference: pattern vs. technique
@@ -77,6 +196,6 @@ Favor open-closed extension        → Template Method, Observer, Decorator
 
 ## Resources
 
-- *Design Patterns: Elements of Reusable OO Software* — Gamma, Helm, Johnson, Vlissides (GoF)
-- *Head First Design Patterns* — Freeman & Robson
-- *Clean Code* — Robert C. Martin
+- *Design Patterns: Elements of Reusable OO Software* - Gamma, Helm, Johnson, Vlissides (GoF)
+- *Head First Design Patterns* - Freeman & Robson
+- *Clean Code* - Robert C. Martin
